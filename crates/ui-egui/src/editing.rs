@@ -302,7 +302,7 @@ impl PdfCraftApp {
                 (SaveTarget::InPlace, Some(p), _) => p,
                 _ => {
                     let name = if name.to_ascii_lowercase().ends_with(".pdf") { name } else { format!("{name}.pdf") };
-                    let dialog = rfd::AsyncFileDialog::new().add_filter("PDF", &["pdf"]).set_file_name(name);
+                    let dialog = crate::dialog::AsyncFileDialog::new().add_filter("PDF", &["pdf"]).set_file_name(name);
                     // The bytes are taken once the user has chosen, so edits made meanwhile are saved too.
                     self.ask_one(crate::pickers::Ask::Save(dialog), None, move |app, dest| {
                         if app.save_doc_to(id, &dest.to_string_lossy()) {
@@ -541,7 +541,12 @@ fn write_atomically_with(path: &str, bytes: &[u8], suffixes: impl IntoIterator<I
             f.write_all(bytes)?;
             f.sync_all()?;
         }
-        std::fs::rename(&tmp, target)
+        std::fs::rename(&tmp, target)?;
+        // Android: the file lives in the app's private storage; the shell copies it to the
+        // document the user picked (Storage Access Framework).
+        #[cfg(target_os = "android")]
+        crate::android::wrote(target).map_err(std::io::Error::other)?;
+        Ok(())
     })();
     if result.is_err() {
         let _ = std::fs::remove_file(&tmp);

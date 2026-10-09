@@ -29,8 +29,11 @@ cbc = { version = "0.2", features = ["alloc", "block-padding"] }
 des = "0.9"
 rc2 = "0.9"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "android")))'.dependencies]
+# Not on Android: a C build (cmake) that doesn't cross-compile cleanly; Android signs with P-256 keys.
 aws-lc-rs = { version = "1.18", default-features = false, features = ["aws-lc-sys", "prebuilt-nasm"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = "0.4"
 
 [target.'cfg(target_os = "windows")'.dependencies]

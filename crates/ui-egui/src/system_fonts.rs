@@ -40,6 +40,11 @@ fn candidates() -> Vec<PathBuf> {
             .iter()
             .map(PathBuf::from)
             .collect()
+    } else if cfg!(target_os = "android") {
+        ["/system/fonts/NotoSansArabic-Regular.ttf", "/system/fonts/NotoNaskhArabic-Regular.ttf", "/system/fonts/NotoSans-Regular.ttf", "/system/fonts/Roboto-Regular.ttf"]
+            .iter()
+            .map(PathBuf::from)
+            .collect()
     } else {
         let files = [
             "truetype/noto/NotoSansArabic-Regular.ttf",

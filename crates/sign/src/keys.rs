@@ -226,9 +226,9 @@ impl PublicKey {
 }
 
 enum Inner {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
     Rsa(aws_lc_rs::signature::RsaKeyPair),
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
     Rsa,
     P256(p256::ecdsa::SigningKey),
     P384(p384::ecdsa::SigningKey),
@@ -282,13 +282,13 @@ impl PrivateKey {
                     [_, n, e, ..] => (n.uint_bytes().to_vec(), e.uint_bytes().to_vec()),
                     _ => return Err(SignError::Malformed("RSAPrivateKey".into())),
                 };
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
                 let inner = Inner::Rsa(
                     aws_lc_rs::signature::RsaKeyPair::from_pkcs8(info)
                         .or_else(|_| aws_lc_rs::signature::RsaKeyPair::from_der(key.value))
                         .map_err(|e| SignError::Malformed(format!("RSA private key: {e}")))?,
                 );
-                #[cfg(target_arch = "wasm32")]
+                #[cfg(any(target_arch = "wasm32", target_os = "android"))]
                 let inner = Inner::Rsa;
                 Ok(PrivateKey { inner, public: PublicKey::Rsa { n, e }, pkcs8: info.to_vec() })
             }
@@ -324,7 +324,7 @@ impl PrivateKey {
     }
 
     /// A new RSA key (Acrobat's default for a self-signed digital ID is 2048-bit RSA).
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
     pub fn generate_rsa(bits: usize) -> Result<PrivateKey, SignError> {
         use aws_lc_rs::encoding::AsDer;
         use aws_lc_rs::rsa::KeySize;
@@ -340,9 +340,9 @@ impl PrivateKey {
     }
 
     /// RSA keys are generated only on native targets (ADR-0009).
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(any(target_arch = "wasm32", target_os = "android"))]
     pub fn generate_rsa(_bits: usize) -> Result<PrivateKey, SignError> {
-        Err(SignError::Unsupported("creating RSA keys in the browser (use a P-256 key)".into()))
+        Err(SignError::Unsupported("creating RSA keys on this platform (use a P-256 key)".into()))
     }
 
     /// A new P-256 key.
@@ -396,7 +396,7 @@ impl PrivateKey {
             return Err(SignError::Unsupported("SHA-1 for new signatures".into()));
         }
         match &self.inner {
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
             Inner::Rsa(kp) => {
                 use aws_lc_rs::signature::{RSA_PKCS1_SHA256, RSA_PKCS1_SHA384, RSA_PKCS1_SHA512};
                 let enc: &'static dyn aws_lc_rs::signature::RsaEncoding = match alg {
@@ -408,8 +408,8 @@ impl PrivateKey {
                 kp.sign(enc, &aws_lc_rs::rand::SystemRandom::new(), msg, &mut sig).map_err(|_| SignError::Crypto("RSA signing failed".into()))?;
                 Ok(sig)
             }
-            #[cfg(target_arch = "wasm32")]
-            Inner::Rsa => Err(SignError::Unsupported("RSA signing in the browser".into())),
+            #[cfg(any(target_arch = "wasm32", target_os = "android"))]
+            Inner::Rsa => Err(SignError::Unsupported("RSA signing on this platform".into())),
             Inner::P256(k) => {
                 use p256::ecdsa::signature::hazmat::PrehashSigner;
                 let s: p256::ecdsa::Signature = k.sign_prehash(&alg.digest(&[msg])).map_err(|e| SignError::Crypto(e.to_string()))?;

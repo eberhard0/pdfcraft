@@ -627,7 +627,7 @@ impl crate::PdfCraftApp {
     pub(crate) fn pick_signature_image(&mut self) {
         let epoch = self.dialog_epoch();
         let initials = self.signature_draft.initials;
-        let dialog = rfd::AsyncFileDialog::new().add_filter(tl!("Image"), &["png", "jpg", "jpeg"]);
+        let dialog = crate::dialog::AsyncFileDialog::new().add_filter(tl!("Image"), &["png", "jpg", "jpeg"]);
         #[cfg(not(target_arch = "wasm32"))]
         self.ask_one(crate::pickers::Ask::File(dialog), None, move |app, path| {
             if app.dialog_epoch() != epoch || app.dialog != Some(crate::Dialog::Signature) || app.signature_draft.initials != initials {
