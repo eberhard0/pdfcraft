@@ -93,9 +93,12 @@ class MainActivity : GameActivity() {
 
     /** A PDF opened (VIEW) or shared (SEND) from another app: hand its bytes to the app. */
     private fun deliverIntent(intent: Intent?) {
-        val uri: Uri? = when (intent?.action) {
+        if (intent == null) return
+        @Suppress("DEPRECATION")
+        val shared: Uri? = intent.getParcelableExtra(Intent.EXTRA_STREAM)
+        val uri: Uri = when (intent.action) {
             Intent.ACTION_VIEW -> intent.data
-            Intent.ACTION_SEND -> @Suppress("DEPRECATION") intent.getParcelableExtra(Intent.EXTRA_STREAM)
+            Intent.ACTION_SEND -> shared
             else -> null
         } ?: return
         Thread {
